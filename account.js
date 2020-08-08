@@ -16,46 +16,62 @@ async function writeJson(filename, json) {
   await writeFile(filename, JSON.stringify(json, null, 2));
 }
 
-router.post('/', async (req, res) => {
+router.post('/', async (req, res, next) => {
   try {
     let account = req.body;
+
+    if (!account.name || account.balance == null) {
+      throw new Error('Name and Balance are required.');
+    }
+
     const accounts = await readJson(global.fileName);
 
-    account = { id: accounts.nextId, ...account };
+    account = {
+      id: accounts.nextId,
+      name: account.name,
+      balance: account.balance,
+      ...account,
+    };
     accounts.nextId++;
     accounts.accounts.push(account);
 
     await writeJson(global.fileName, accounts);
+    global.logger.info('POST /account');
     res.send(account);
   } catch (err) {
-    res.status(400).send({ error: err.message });
+    next(err);
   }
 });
 
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     const accounts = await readJson(global.fileName);
     delete accounts.nextId;
+    global.logger.info('GET /account');
     res.send(accounts);
   } catch (err) {
-    res.status(400).send({ error: err.message });
+    next(err);
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req, res, next) => {
   try {
     const accounts = await readJson(global.fileName);
     const account = accounts.accounts.find(
       (account) => account.id === parseInt(req.params.id)
     );
-
-    res.send(account);
+    if (account == null) {
+      throw new Error('Account not found');
+    } else {
+      global.logger.info('GET /account/:id');
+      res.send(account);
+    }
   } catch (err) {
-    res.status(400).send({ error: err.message });
+    next(err);
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req, res, next) => {
   try {
     const accounts = await readJson(global.fileName);
     const account = accounts.accounts.find(
@@ -66,40 +82,65 @@ router.delete('/:id', async (req, res) => {
     );
 
     await writeJson(global.fileName, accounts);
+    global.logger.info('DELETE /account/:id');
     res.send(account);
   } catch (err) {
-    res.status(400).send({ error: err.message });
+    next(err);
   }
 });
 
-router.put('/', async (req, res) => {
+router.put('/', async (req, res, next) => {
   try {
     let accountNew = req.body;
+    if (!account.name || account.balance == null) {
+      throw new Error('Name and Balance are required.');
+    }
+
     const accounts = await readJson(global.fileName);
     const index = accounts.accounts.findIndex(
       (accountOld) => accountOld.id === accountNew.id
     );
-    accounts.accounts[index] = accountNew;
-    await writeJson(global.fileName, accounts);
-    res.send(accountNew);
+    if (!accountNew.id || !accountNew.name || !accountNew.balance == null) {
+      throw new Error('Id, name and balance are required.');
+    } else if (index === -1) {
+      throw new Error('Account not found.');
+    } else {
+      accounts.accounts[index].name = accountNew.name;
+      accounts.accounts[index].balance = accountNew.balance;
+      await writeJson(global.fileName, accounts);
+      global.logger.info('PUT /account');
+      res.send(accountNew);
+    }
   } catch (err) {
-    res.status(400).send({ error: err.message });
+    next(err);
   }
 });
 
-router.patch('/updateBalance', async (req, res) => {
+router.patch('/updateBalance', async (req, res, next) => {
   try {
     let accountNewBalance = req.body;
     const accounts = await readJson(global.fileName);
     const index = accounts.accounts.findIndex(
       (account) => account.id === accountNewBalance.id
     );
-    accounts.accounts[index].balance = accountNewBalance.balance;
-    await writeJson(global.fileName, accounts);
-    res.send(accounts.accounts[index]);
+    if (!accountNewBalance.id || !accountNewBalance.balance == null) {
+      throw new Error('Id and the new balance are required.');
+    } else if (index === -1) {
+      throw new Error('Account not found.');
+    } else {
+      accounts.accounts[index].balance = accountNewBalance.balance;
+      await writeJson(global.fileName, accounts);
+      global.logger.info('PATCH /account');
+      res.send(accounts.accounts[index]);
+    }
   } catch (err) {
-    res.status(400).send({ error: err.message });
+    next(err);
   }
+});
+
+router.use((err, req, res, next) => {
+  global.logger.error(`${req.method} ${req.baseUrl} -  ${err.message}`);
+  res.status(400).send({ erro: err.message });
 });
 
 export default router;

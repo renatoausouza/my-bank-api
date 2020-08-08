@@ -4,28 +4,26 @@ import accountsRouter from './account.js';
 import { promises as fs } from 'fs';
 
 const { readFile, writeFile } = fs;
-
-const app = express();
-app.use(express.json());
-app.use('/account', accountsRouter);
-
 const { combine, printf, label, timestamp } = winston.format;
 
 const myFormart = printf(({ level, message, label, timestamp }) => {
   return `${timestamp}[${label}] ${level}: ${message}`;
 });
 
-const logger = winston.createLogger({
+global.logger = winston.createLogger({
   level: 'silly',
   transports: [
     new winston.transports.Console(),
     new winston.transports.File({
-      filename: 'my-log.log',
+      filename: 'my-bank-api.log',
     }),
   ],
   format: combine(label({ label: 'my-bank-api' }), timestamp(), myFormart),
 });
 
+const app = express();
+app.use(express.json());
+app.use('/account', accountsRouter);
 app.listen(3000, async () => {
   const initialJson = {
     nextId: 1,
@@ -33,14 +31,14 @@ app.listen(3000, async () => {
   };
   try {
     await readFile('accounts.json');
-    logger.info('My Bank API started!');
+    global.logger.info('My Bank API started!');
   } catch (erro) {
     writeFile('accounts.json', JSON.stringify(initialJson, null, 2))
       .then(() => {
-        logger.info('My Bank API started!');
+        global.logger.info('My Bank API started!');
       })
       .catch((err) => {
-        logger.error(err);
+        global.logger.error(err);
       });
   }
 });
