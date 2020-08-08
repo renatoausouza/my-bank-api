@@ -6,17 +6,26 @@ const { readFile, writeFile } = fs;
 
 global.fileName = 'accounts.json';
 
+async function readJson(filename) {
+  const data = await readFile(global.fileName);
+  const jsonAccounts = JSON.parse(data);
+  return jsonAccounts;
+}
+
+async function writeJson(filename, json) {
+  await writeFile(filename, JSON.stringify(json, null, 2));
+}
+
 router.post('/', async (req, res) => {
   try {
     let account = req.body;
-    const data = await readFile(global.fileName);
-    const jsonAccounts = JSON.parse(data);
+    const accounts = await readJson(global.fileName);
 
-    account = { id: jsonAccounts.nextId, ...account };
-    jsonAccounts.nextId++;
-    jsonAccounts.accounts.push(account);
+    account = { id: accounts.nextId, ...account };
+    accounts.nextId++;
+    accounts.accounts.push(account);
 
-    await writeFile(global.fileName, JSON.stringify(jsonAccounts, null, 2));
+    await writeJson(global.fileName, accounts);
     res.send(account);
   } catch (err) {
     res.status(400).send({ error: err.message });
@@ -25,10 +34,9 @@ router.post('/', async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const data = await readFile(global.fileName);
-    const jsonAccounts = JSON.parse(data);
-    delete jsonAccounts.nextId;
-    res.send(jsonAccounts);
+    const accounts = await readJson(global.fileName);
+    delete accounts.nextId;
+    res.send(accounts);
   } catch (err) {
     res.status(400).send({ error: err.message });
   }
@@ -36,9 +44,8 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const data = await readFile(global.fileName);
-    const jsonAccounts = JSON.parse(data);
-    const account = jsonAccounts.accounts.find(
+    const accounts = await readJson(global.fileName);
+    const account = accounts.accounts.find(
       (account) => account.id === parseInt(req.params.id)
     );
 
