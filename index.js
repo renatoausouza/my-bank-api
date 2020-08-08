@@ -1,6 +1,6 @@
 import express from 'express';
 import winston from 'winston';
-import accountsRouter from './accounts.js';
+import accountsRouter from './account.js';
 import { promises as fs } from 'fs';
 
 const { readFile, writeFile } = fs;
@@ -35,7 +35,7 @@ app.listen(3000, async () => {
     await readFile('accounts.json');
     logger.info('My Bank API started!');
   } catch (erro) {
-    writeFile('accounts.json', JSON.stringify(initialJson))
+    writeFile('accounts.json', JSON.stringify(initialJson, null, 2))
       .then(() => {
         logger.info('My Bank API started!');
       })
