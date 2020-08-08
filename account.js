@@ -55,4 +55,21 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+router.delete('/:id', async (req, res) => {
+  try {
+    const accounts = await readJson(global.fileName);
+    const account = accounts.accounts.find(
+      (account) => account.id === parseInt(req.params.id)
+    );
+    accounts.accounts = accounts.accounts.filter(
+      (account) => account.id !== parseInt(req.params.id)
+    );
+
+    await writeJson(global.fileName, accounts);
+    res.send(account);
+  } catch (err) {
+    res.status(400).send({ error: err.message });
+  }
+});
+
 export default router;
